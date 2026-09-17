@@ -9,7 +9,7 @@ const axios = require('axios'); // Requirement: Include Axios library
  * Task 6: Register a new user
  * @route POST /register
  */
-public_users.post("/register", (req, res) => {
+public_users.post("/register", async (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
 
@@ -124,7 +124,7 @@ public_users.get('/title/:title', async function (req, res) {
  * Task 5: Get book review
  * @route GET /review/:isbn
  */
-public_users.get('/review/:isbn', function (req, res) {
+public_users.get('/review/:isbn', async function (req, res) {
     const isbn = req.params.isbn;
     if (books[isbn]) {
         return res.status(200).json(books[isbn].reviews);
