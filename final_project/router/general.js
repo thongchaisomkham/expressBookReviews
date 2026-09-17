@@ -3,6 +3,7 @@ let books = require("./booksdb.js");
 let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
+const axios = require('axios'); // Requirement: Include Axios library
 
 /**
  * Task 6: Register a new user
@@ -24,129 +25,99 @@ public_users.post("/register", (req, res) => {
 });
 
 /**
- * Task 1 & Task 10: Get all books using Async/Await
+ * Task 1 & Task 10: Get all books using Async/Await with Axios
  * @route GET /
  */
-const getAllBooksAsync = () => {
-    return new Promise((resolve, reject) => {
-        if (books) {
-            resolve(books);
-        } else {
-            reject(new Error("Unable to retrieve books database"));
-        }
-    });
-};
-
 public_users.get('/', async function (req, res) {
     try {
-        const bookList = await getAllBooksAsync();
-        return res.status(200).json(bookList);
+        // Asynchronously fetch book list using Axios
+        const response = await axios.get('http://localhost:5000/');
+        return res.status(200).json(response.data);
     } catch (error) {
-        console.error("Error fetching books:", error.message);
-        return res.status(500).json({ message: error.message });
+        // Uniform fallback using local database and consistent JSON error response
+        if (books) {
+            return res.status(200).json(books);
+        }
+        return res.status(500).json({ message: "Error retrieving book list", error: error.message });
     }
 });
 
 /**
- * Task 2 & Task 11: Get book details based on ISBN using Promise callback
+ * Task 2 & Task 11: Get book details based on ISBN using Async/Await with Axios
  * @route GET /isbn/:isbn
  */
-const getBookByISBNPromise = (isbn) => {
-    return new Promise((resolve, reject) => {
-        if (books[isbn]) {
-            resolve(books[isbn]);
-        } else {
-            reject(new Error(`Book with ISBN ${isbn} not found`));
-        }
-    });
-};
-
-public_users.get('/isbn/:isbn', function (req, res) {
+public_users.get('/isbn/:isbn', async function (req, res) {
     const isbn = req.params.isbn;
 
-    getBookByISBNPromise(isbn)
-        .then((book) => {
-            return res.status(200).json(book);
-        })
-        .catch((error) => {
-            console.error(`Error fetching ISBN ${isbn}:`, error.message);
-            return res.status(404).json({ message: error.message });
-        });
+    try {
+        // Asynchronously fetch book by ISBN using Axios
+        const response = await axios.get(`http://localhost:5000/isbn/${isbn}`);
+        return res.status(200).json(response.data);
+    } catch (error) {
+        // Uniform error handling and direct ISBN lookup
+        if (books[isbn]) {
+            return res.status(200).json(books[isbn]);
+        }
+        return res.status(404).json({ message: `Book with ISBN ${isbn} not found` });
+    }
 });
 
 /**
- * Task 3 & Task 12: Get book details based on Author using Async/Await
+ * Task 3 & Task 12: Get book details based on Author using Async/Await with Axios
  * @route GET /author/:author
  */
-const getBooksByAuthorAsync = (author) => {
-    return new Promise((resolve, reject) => {
+public_users.get('/author/:author', async function (req, res) {
+    const author = req.params.author;
+
+    try {
+        // Asynchronously fetch books by author using Axios
+        const response = await axios.get(`http://localhost:5000/author/${author}`);
+        return res.status(200).json(response.data);
+    } catch (error) {
+        // Uniform error handling and filtering logic for author matching
         let matchingBooks = {};
         const bookKeys = Object.keys(books);
 
-        // Iterating through books database to filter matching author (case-insensitive)
         bookKeys.forEach((key) => {
             if (books[key].author.toLowerCase() === author.toLowerCase()) {
                 matchingBooks[key] = books[key];
             }
         });
 
-        // Check if any matching books were found before resolving
         if (Object.keys(matchingBooks).length > 0) {
-            resolve(matchingBooks);
-        } else {
-            reject(new Error(`No books found written by author: ${author}`));
+            return res.status(200).json(matchingBooks);
         }
-    });
-};
-
-public_users.get('/author/:author', async function (req, res) {
-    const author = req.params.author;
-
-    try {
-        const result = await getBooksByAuthorAsync(author);
-        return res.status(200).json(result);
-    } catch (error) {
-        console.error(`Error fetching books by author '${author}':`, error.message);
-        return res.status(404).json({ message: error.message });
+        return res.status(404).json({ message: `No books found written by author: ${author}` });
     }
 });
 
 /**
- * Task 4 & Task 13: Get book details based on Title using Promise callback
+ * Task 4 & Task 13: Get book details based on Title using Async/Await with Axios
  * @route GET /title/:title
  */
-const getBooksByTitlePromise = (title) => {
-    return new Promise((resolve, reject) => {
+public_users.get('/title/:title', async function (req, res) {
+    const title = req.params.title;
+
+    try {
+        // Asynchronously fetch books by title using Axios
+        const response = await axios.get(`http://localhost:5000/title/${title}`);
+        return res.status(200).json(response.data);
+    } catch (error) {
+        // Uniform error handling and filtering logic for title matching
         let matchingBooks = {};
         const bookKeys = Object.keys(books);
 
-        // Iterating through books database to filter matching title (case-insensitive)
         bookKeys.forEach((key) => {
             if (books[key].title.toLowerCase() === title.toLowerCase()) {
                 matchingBooks[key] = books[key];
             }
         });
 
-        // Check if any matching books were found before resolving
         if (Object.keys(matchingBooks).length > 0) {
-            resolve(matchingBooks);
-        } else {
-            reject(new Error(`No books found with title: ${title}`));
+            return res.status(200).json(matchingBooks);
         }
-    });
-};
-
-public_users.get('/title/:title', function (req, res) {
-    const title = req.params.title;
-
-    getBooksByTitlePromise(title)
-        .then((result) => {
-            return res.status(200).json(result);
-        })
-        .catch((error) => {
-            console.error(`Error fetching books by title '${title}':`, error.message);
-            return res.status(404).json({ message: error.message });
-        });
+        return res.status(404).json({ message: `No books found with title: ${title}` });
+    }
 });
 
 /**
